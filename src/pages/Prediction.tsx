@@ -10,6 +10,8 @@ import { mockPrediction } from '@/services/mockData';
 import { PredictionResult } from '@/types';
 import PredictionDetails from '@/components/visualization/PredictionDetails';
 
+const API_BASE_URL = 'http://localhost:5000';
+
 const Prediction: React.FC = () => {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
@@ -34,7 +36,7 @@ const Prediction: React.FC = () => {
     }
   };
   
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!file) {
       toast({
         title: "No file selected",
@@ -44,6 +46,62 @@ const Prediction: React.FC = () => {
       return;
     }
     
+    setIsLoading(true);
+    setProgress(0);
+    
+    // Create progress updates
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 90) {
+          return 90; // Hold at 90% until actual completion
+        }
+        return prev + 10;
+      });
+    }, 300);
+    
+    try {
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Send to backend API
+      const response = await fetch(`${API_BASE_URL}/api/predict`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to process data');
+      }
+      
+      const predictionResult = await response.json();
+      clearInterval(progressInterval);
+      setProgress(100);
+      setIsLoading(false);
+      
+      setResult(predictionResult);
+      
+      toast({
+        title: "Analysis complete",
+        description: "The WiFi CSI data has been processed successfully."
+      });
+      
+    } catch (error) {
+      clearInterval(progressInterval);
+      setIsLoading(false);
+      setProgress(0);
+      
+      console.error('Error processing data:', error);
+      toast({
+        title: "Processing error",
+        description: error instanceof Error ? error.message : "Failed to process the data.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleMockData = () => {
     setIsLoading(true);
     setProgress(0);
     
@@ -58,7 +116,7 @@ const Prediction: React.FC = () => {
       });
     }, 300);
     
-    // Mock API call
+    // Use mock data for testing without backend
     setTimeout(() => {
       clearInterval(interval);
       setIsLoading(false);
@@ -68,10 +126,10 @@ const Prediction: React.FC = () => {
       setResult(mockPrediction());
       
       toast({
-        title: "Analysis complete",
-        description: "The WiFi CSI data has been processed successfully."
+        title: "Mock Analysis Complete",
+        description: "Using simulated data for demonstration."
       });
-    }, 3000);
+    }, 1500);
   };
   
   const resetForm = () => {
@@ -142,7 +200,7 @@ const Prediction: React.FC = () => {
                   <Button 
                     disabled={!file || isLoading} 
                     onClick={handleUpload} 
-                    className="w-full"
+                    className="flex-1"
                   >
                     {isLoading ? (
                       <>
@@ -150,6 +208,14 @@ const Prediction: React.FC = () => {
                         Processing
                       </>
                     ) : "Process Data"}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleMockData}
+                    disabled={isLoading} 
+                    className="flex-1"
+                  >
+                    Use Demo Data
                   </Button>
                 </div>
               </>
