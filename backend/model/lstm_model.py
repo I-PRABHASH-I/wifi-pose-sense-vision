@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -177,9 +176,22 @@ class ModelTrainer:
     def predict(self, features):
         self.model.eval()
         with torch.no_grad():
+            # Handle both single sample and batch inputs
+            if features.ndim == 1:
+                # If a single sample is provided (1D array), reshape it to 2D
+                features = features.reshape(1, -1)
+            
             features = torch.FloatTensor(features).to(self.device)
             presence_out, pose_out = self.model(features)
-            presence_pred = (presence_out > 0.5).float()
+            
+            # Handle prediction outputs correctly
+            if isinstance(presence_out, torch.Tensor) and presence_out.ndim == 0:
+                # If scalar, convert to list
+                presence_pred = [(presence_out > 0.5).float().item()]
+            else:
+                presence_pred = (presence_out > 0.5).float().cpu().numpy()
+                
             pose_pred = torch.argmax(pose_out, dim=1)
             pose_class = self.label_encoder.inverse_transform(pose_pred.cpu().numpy())
-            return presence_pred.cpu().numpy(), pose_class
+            
+            return presence_pred, pose_class

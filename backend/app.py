@@ -55,8 +55,22 @@ def predict():
         csi_columns = [col for col in df.columns if col.startswith('csi_')]
         features = df[csi_columns].values
         
+        # If features is a single sample, it will be 1D
+        if features.ndim == 1:
+            # Single sample, already handled by updated ModelTrainer.predict
+            pass
+        
         # Make predictions
         presence_pred, pose_class = trainer.predict(features)
+        
+        # Ensure presence_pred is properly handled whether it's a list, numpy array, or scalar
+        if hasattr(presence_pred, "__iter__"):
+            human_presence = bool(presence_pred[0] > 0.5)
+        else:
+            human_presence = bool(presence_pred > 0.5)
+        
+        # Ensure pose_class is properly handled
+        pose = pose_class[0] if human_presence else 'None'
         
         # Extract joint coordinates if available
         joint_coordinates = []
@@ -71,8 +85,8 @@ def predict():
             joint_coordinates = [{'x': 0, 'y': 0} for _ in range(17)]
         
         result = {
-            'humanPresence': bool(presence_pred[0] > 0.5),
-            'pose': pose_class[0] if presence_pred[0] > 0.5 else 'None',
+            'humanPresence': human_presence,
+            'pose': pose,
             'confidence': float(np.random.uniform(0.7, 0.99)),  # Just a placeholder
             'jointCoordinates': joint_coordinates
         }
@@ -80,6 +94,9 @@ def predict():
         return jsonify(result)
     
     except Exception as e:
+        import traceback
+        print(f"Error processing request: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/health', methods=['GET'])

@@ -1,6 +1,7 @@
 
 import os
 import pandas as pd
+import numpy as np
 from model.lstm_model import ModelTrainer
 
 def test_model():
@@ -38,13 +39,27 @@ def test_model():
             csi_columns = [col for col in df.columns if col.startswith('csi_')]
             features = df[csi_columns].values
             
-            # Make prediction
-            presence_pred, pose_pred = trainer.predict(features)
+            # Make prediction - handle potential dimensionality issues
+            try:
+                presence_pred, pose_pred = trainer.predict(features)
+                
+                # Ensure we can access the prediction results correctly
+                if hasattr(presence_pred, "__iter__"):
+                    presence_result = "Yes" if presence_pred[0] > 0.5 else "No"
+                else:
+                    presence_result = "Yes" if presence_pred > 0.5 else "No"
+                
+                pose_result = pose_pred[0] if len(pose_pred) > 0 else "Unknown"
+                
+                # Print results
+                print(f"True pose: {df['pose_class'].iloc[0]}")
+                print(f"Predicted pose: {pose_result}")
+                print(f"Human presence: {presence_result}")
             
-            # Print results
-            print(f"True pose: {df['pose_class'].iloc[0]}")
-            print(f"Predicted pose: {pose_pred[0]}")
-            print(f"Human presence: {'Yes' if presence_pred > 0.5 else 'No'}")
+            except Exception as e:
+                import traceback
+                print(f"Error during prediction: {str(e)}")
+                print(traceback.format_exc())
 
 if __name__ == "__main__":
     test_model()
