@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -93,6 +92,15 @@ class ModelTrainer:
         self.criterion_pose = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters())
         self.label_encoder = None
+        # Initialize default label encoder with pose classes if one isn't loaded
+        self._init_default_label_encoder()
+
+    def _init_default_label_encoder(self):
+        """Initialize a default label encoder with standard pose classes."""
+        pose_classes = ['stand', 'sit', 'kneel', 'sleep', 'no_human']
+        self.label_encoder = LabelEncoder()
+        self.label_encoder.fit(pose_classes)
+        print("Default label encoder initialized")
 
     def train(self, train_csv, valid_csv, num_epochs=50, batch_size=32):
         # Create datasets
@@ -162,6 +170,7 @@ class ModelTrainer:
         encoder_path = os.path.join(os.path.dirname(path), 'label_encoder.pkl')
         with open(encoder_path, 'wb') as f:
             pickle.dump(self.label_encoder, f)
+        print(f"Model and label encoder saved to {os.path.dirname(path)}")
 
     def load_model(self, path):
         # Load model state dict
@@ -169,16 +178,29 @@ class ModelTrainer:
         
         # Load label encoder separately
         encoder_path = os.path.join(os.path.dirname(path), 'label_encoder.pkl')
-        with open(encoder_path, 'rb') as f:
-            self.label_encoder = pickle.load(f)
+        if os.path.exists(encoder_path):
+            try:
+                with open(encoder_path, 'rb') as f:
+                    self.label_encoder = pickle.load(f)
+                print(f"Label encoder loaded from {encoder_path}")
+            except Exception as e:
+                print(f"Error loading label encoder: {str(e)}")
+                self._init_default_label_encoder()
+        else:
+            print(f"Label encoder file not found at {encoder_path}, using default")
+            self._init_default_label_encoder()
         
         self.model.eval()
 
     def predict(self, features):
+        if self.label_encoder is None:
+            print("Warning: No label encoder found. Initializing default label encoder.")
+            self._init_default_label_encoder()
+            
         self.model.eval()
         with torch.no_grad():
             # Handle both single sample and batch inputs
-            if features.ndim == 1:
+            if isinstance(features, np.ndarray) and features.ndim == 1:
                 # If a single sample is provided (1D array), reshape it to 2D
                 features = features.reshape(1, -1)
             
@@ -193,7 +215,11 @@ class ModelTrainer:
                 presence_pred = (presence_out > 0.5).float().cpu().numpy()
                 
             pose_pred = torch.argmax(pose_out, dim=1)
-            pose_class = self.label_encoder.inverse_transform(pose_pred.cpu().numpy())
+            try:
+                pose_class = self.label_encoder.inverse_transform(pose_pred.cpu().numpy())
+            except Exception as e:
+                print(f"Error during pose class transformation: {str(e)}")
+                pose_class = np.array(["unknown"] * len(pose_pred))
             
             return presence_pred, pose_class
 

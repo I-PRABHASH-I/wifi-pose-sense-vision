@@ -12,19 +12,27 @@ def test_model():
     trainer = ModelTrainer(input_size)
     
     # Load model
-    model_path = os.path.join('backend','model', 'saved_models', 'best_model.pth')
+    model_path = 'model/saved_models/best_model.pth'
     if not os.path.exists(model_path):
         print(f"Error: No trained model found at {model_path}. Please run the training script first.")
         return
     
-    trainer.load_model(model_path)
-    print("Model loaded successfully")
+    try:
+        trainer.load_model(model_path)
+        print("Model loaded successfully")
+    except Exception as e:
+        print(f"Error loading model: {str(e)}")
+        return
     
     # Load test samples
-    test_samples_dir = os.path.join('data', 'test_samples')
+    test_samples_dir = os.path.join('..', 'data', 'test_samples')
     if not os.path.exists(test_samples_dir):
-        print(f"Error: No test samples found at {test_samples_dir}. Please run generate_test_samples.py first.")
-        return
+        print(f"Error: No test samples found at {test_samples_dir}.")
+        # Try alternate path
+        test_samples_dir = os.path.join('data', 'test_samples')
+        if not os.path.exists(test_samples_dir):
+            print(f"Error: No test samples found at {test_samples_dir} either. Please run generate_test_samples.py first.")
+            return
     
     # Test each sample
     for filename in os.listdir(test_samples_dir):
