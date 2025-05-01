@@ -1,3 +1,4 @@
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -195,3 +196,41 @@ class ModelTrainer:
             pose_class = self.label_encoder.inverse_transform(pose_pred.cpu().numpy())
             
             return presence_pred, pose_class
+
+if __name__ == "__main__":
+    # Example usage
+    input_size = 256  # Number of CSI subcarriers
+    trainer = ModelTrainer(input_size)
+    
+    # Check if necessary directories exist
+    os.makedirs('data/train_data', exist_ok=True)
+    os.makedirs('data/test_data', exist_ok=True)
+    os.makedirs('backend/model/saved_models', exist_ok=True)
+    
+    # Check if data files exist
+    train_csv = 'data/train_data/wifi_csi_train.csv'
+    test_csv = 'data/test_data/wifi_csi_test.csv'
+    
+    if os.path.exists(train_csv) and os.path.exists(test_csv):
+        print("Training data found. Starting training...")
+        # Train the model
+        trainer.train(
+            train_csv=train_csv,
+            valid_csv=test_csv,
+            num_epochs=5,  # Reduced for demonstration
+            batch_size=32
+        )
+        print("Training completed.")
+        
+        # Test on a single sample for demonstration
+        print("\nTesting on a single sample:")
+        df = pd.read_csv(test_csv)
+        csi_columns = [col for col in df.columns if col.startswith('csi_')]
+        features = df[csi_columns].values[0]  # Take the first sample
+        
+        presence_pred, pose_class = trainer.predict(features)
+        print(f"True pose: {df['pose_class'].iloc[0]}")
+        print(f"Predicted pose: {pose_class[0]}")
+        print(f"Human presence: {'Yes' if presence_pred[0] > 0.5 else 'No'}")
+    else:
+        print("Training data not found. Please run the data generation script first.")
