@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -141,13 +140,6 @@ const Prediction: React.FC = () => {
   
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Prediction Tool</h1>
-        <p className="mt-2 text-muted-foreground">
-          Upload WiFi CSI data to detect human presence and pose
-        </p>
-      </div>
-      
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
