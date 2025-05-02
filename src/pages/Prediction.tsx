@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,6 @@ import { Upload, Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import SkeletonVisualization from '@/components/visualization/SkeletonVisualization';
-import { mockPrediction } from '@/services/mockData';
 import { PredictionResult } from '@/types';
 import PredictionDetails from '@/components/visualization/PredictionDetails';
 
@@ -100,37 +100,6 @@ const Prediction: React.FC = () => {
     }
   };
   
-  const handleMockData = () => {
-    setIsLoading(true);
-    setProgress(0);
-    
-    // Mock progress updates
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 300);
-    
-    // Use mock data for testing without backend
-    setTimeout(() => {
-      clearInterval(interval);
-      setIsLoading(false);
-      setProgress(100);
-      
-      // Use mock data for now - would be replaced with actual API call
-      setResult(mockPrediction());
-      
-      toast({
-        title: "Mock Analysis Complete",
-        description: "Using simulated data for demonstration."
-      });
-    }, 1500);
-  };
-  
   const resetForm = () => {
     setFile(null);
     setIsLoading(false);
@@ -188,11 +157,11 @@ const Prediction: React.FC = () => {
                   </div>
                 )}
                 
-                <div className="flex space-x-2">
+                <div className="flex">
                   <Button 
                     disabled={!file || isLoading} 
                     onClick={handleUpload} 
-                    className="flex-1"
+                    className="w-full"
                   >
                     {isLoading ? (
                       <>
@@ -200,14 +169,6 @@ const Prediction: React.FC = () => {
                         Processing
                       </>
                     ) : "Process Data"}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleMockData}
-                    disabled={isLoading} 
-                    className="flex-1"
-                  >
-                    Use Demo Data
                   </Button>
                 </div>
               </>
